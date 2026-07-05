@@ -1,3 +1,7 @@
+/* ════════════════════════════════
+   ZYORA PORTFOLIO — script.js
+════════════════════════════════ */
+
 /* ── Active nav highlight on scroll ── */
 const sections = document.querySelectorAll('.section');
 const navLinks  = document.querySelectorAll('.nav-links a');
@@ -31,25 +35,39 @@ document.getElementById('navToggle').addEventListener('click', () => {
   document.getElementById('sidenav').classList.toggle('open');
 });
 
+/* ── Scroll hint fade ── */
+window.addEventListener('scroll', () => {
+  const hint = document.querySelector('.scroll-hint');
+  if (hint) hint.style.opacity = window.scrollY > 200 ? '0' : '0.5';
+}, { passive: true });
+
+
 /* ════════════════════════════════
-   LIGHTBOX  — shared for branding & social
-   Any element with class .lb-trigger and
-   data-src / data-caption opens its
-   nearest .lightbox sibling-or-ancestor.
+   UNIVERSAL LIGHTBOX
+   Works for branding, social,
+   print, events — any .lb-trigger
 ════════════════════════════════ */
-function setupLightbox(triggersSelector, lbId, imgId, captionId, closeId, accentVar) {
+function setupLightbox(triggersSelector, lbId, imgId, captionId, closeId) {
   const lb      = document.getElementById(lbId);
   const lbImg   = document.getElementById(imgId);
   const lbCap   = document.getElementById(captionId);
   const lbClose = document.getElementById(closeId);
-  if (!lb) return;
+  if (!lb || !lbImg) return;
 
   document.querySelectorAll(triggersSelector).forEach(card => {
     card.style.cursor = 'pointer';
     card.addEventListener('click', () => {
-      const src     = card.dataset.src     || card.querySelector('img')?.src || '';
+      // prefer data-src, fall back to first <img> src
+      let src = card.dataset.src || '';
+      if (!src) {
+        const img = card.querySelector('img');
+        if (img) src = img.getAttribute('src') || '';
+      }
       const caption = card.dataset.caption || '';
-      if (!src || src.endsWith('/') || src === window.location.href) return;
+
+      // don't open if no real src
+      if (!src || src === '' || src === '#') return;
+
       lbImg.src = src;
       lbCap.textContent = caption;
       lb.classList.add('open');
@@ -65,20 +83,32 @@ function setupLightbox(triggersSelector, lbId, imgId, captionId, closeId, accent
 
   if (lbClose) lbClose.addEventListener('click', closeLb);
   lb.addEventListener('click', e => { if (e.target === lb) closeLb(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLb(); });
 }
 
-// Branding lightbox
+/* One shared Escape key listener for all lightboxes */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.lightbox.open').forEach(lb => {
+      lb.classList.remove('open');
+      const img = lb.querySelector('.lightbox-img');
+      if (img) img.src = '';
+      document.body.style.overflow = '';
+    });
+    closeReelModal();
+  }
+});
+
+// Branding — click opens lightbox
 setupLightbox('#brandGrid .lb-trigger', 'brandLightbox', 'brandLbImg', 'brandLbCaption', 'brandLbClose');
 
-// Social lightbox
-setupLightbox('#social .lb-trigger', 'socialLightbox', 'socialLbImg', 'socialLbCaption', 'socialLbClose');
+// Social — click opens lightbox
+setupLightbox('#socialGrid .lb-trigger', 'socialLightbox', 'socialLbImg', 'socialLbCaption', 'socialLbClose');
 
-/* ── Scroll hint fade ── */
-window.addEventListener('scroll', () => {
-  const hint = document.querySelector('.scroll-hint');
-  if (hint) hint.style.opacity = window.scrollY > 200 ? '0' : '0.5';
-}, { passive: true });
+// Print — click opens lightbox
+setupLightbox('#printGrid .lb-trigger', 'printLightbox', 'printLbImg', 'printLbCaption', 'printLbClose');
+
+// Events — click opens lightbox
+setupLightbox('#eventsGrid .lb-trigger', 'eventsLightbox', 'eventsLbImg', 'eventsLbCaption', 'eventsLbClose');
 
 
 /* ════════════════════════════════
@@ -90,7 +120,6 @@ const reelModalLabel = document.getElementById('reelModalLabel');
 const reelModalClose = document.getElementById('reelModalClose');
 
 document.querySelectorAll('.reel-card').forEach(card => {
-  /* auto-grab first frame as thumbnail if video loads */
   const preview = card.querySelector('.reel-preview');
   if (preview && preview.src) {
     preview.addEventListener('loadeddata', () => card.classList.add('has-thumb'));
@@ -115,9 +144,9 @@ document.querySelectorAll('.reel-card').forEach(card => {
 });
 
 function closeReelModal() {
+  if (!reelModal) return;
   reelModal.classList.remove('open');
-  reelModalVideo.pause();
-  reelModalVideo.src = '';
+  if (reelModalVideo) { reelModalVideo.pause(); reelModalVideo.src = ''; }
   document.body.style.overflow = '';
 }
 
@@ -127,6 +156,3 @@ if (reelModal) {
     if (e.target === reelModal) closeReelModal();
   });
 }
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeReelModal();
-});
